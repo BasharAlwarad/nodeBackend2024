@@ -1,26 +1,15 @@
 import express, { json } from 'express';
-import pkg from 'pg';
-const { Pool } = pkg;
+import dotenv from 'dotenv';
 
-const PORT = 8000;
+import { queryDB } from './db.js';
+
+dotenv.config();
 
 const app = express();
+
 app.use(json());
 
-const pool = new Pool({
-  connectionString:
-    'postgresql://neondb_owner:evBV7Sp3ZrJA@ep-delicate-sound-a21q203g.eu-central-1.aws.neon.tech/neondb?sslmode=require',
-});
-
-const queryDB = async (query, params = []) => {
-  const client = await pool.connect();
-  try {
-    const result = await client.query(query, params);
-    return result.rows;
-  } finally {
-    client.release();
-  }
-};
+const PORT = process.env.PORT;
 
 // Get all users
 app.get('/api/v1/users', async (req, res) => {
@@ -39,6 +28,7 @@ app.get('/api/v1/users/:id', async (req, res) => {
   try {
     const user = await queryDB('SELECT * FROM users WHERE id = $1', [id]);
     if (user.length > 0) {
+      console.log(user);
       res.json(user[0]);
     } else {
       res.status(404).json({ error: 'User not found' });
@@ -57,6 +47,7 @@ app.post('/api/v1/users', async (req, res) => {
       'INSERT INTO users (first_name, last_name, age) VALUES ($1, $2, $3) RETURNING *',
       [first_name, last_name, age]
     );
+
     res.status(201).json(newUser[0]);
   } catch (err) {
     console.error('Error creating user:', err);
@@ -108,6 +99,6 @@ app.get('*', (req, res) => {
   res.status(500).send('Server error!');
 });
 
-app.listen(PORT, () =>
-  console.log(`Server is running on http://localhost:${PORT}`)
-);
+app.listen(PORT, () => {
+  console.log(`Server is running http://localhost:${PORT}`);
+});
