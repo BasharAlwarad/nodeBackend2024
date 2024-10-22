@@ -1,20 +1,22 @@
-import pkg from 'pg';
+import { Sequelize } from 'sequelize';
 import dotenv from 'dotenv';
+
 dotenv.config();
 
-const { Pool } = pkg;
 const NEON = process.env.NEON;
 
-const pool = new Pool({
-  connectionString: NEON,
+const sequelize = new Sequelize(NEON, {
+  dialect: 'postgres',
+  logging: false,
 });
 
-export const queryDB = async (query, params = []) => {
-  const client = await pool.connect();
-  try {
-    const result = await client.query(query, params);
-    return result.rows;
-  } finally {
-    client.release();
-  }
-};
+sequelize
+  .authenticate()
+  .then(() => {
+    console.log('Database connected...');
+  })
+  .catch((err) => {
+    console.error('Unable to connect to the database:', err);
+  });
+
+export default sequelize;

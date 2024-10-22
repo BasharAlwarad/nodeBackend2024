@@ -1,51 +1,50 @@
 import express, { json } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
-
-import { queryDB } from './db.js';
+import Users from './models/User.js';
+import sequelize from './db.js';
 
 dotenv.config();
 
 const app = express();
-
-app.use(json(), cors());
+app.use(json());
+app.use(cors());
 
 const PORT = process.env.PORT;
 
+sequelize
+  .sync({ force: false })
+  .then(() => console.log('Database synced...'))
+  .catch((err) => console.error('Error syncing database:', err));
+
 app.get('/', (req, res) => {
-  res.send(`
-<h1>Server is Running!</h1>
-    `);
+  res.send('<h1>Server is Running!</h1>');
 });
 
-// fetching with query
+// Fetching with query
 app.get('/api/v1/users', async (req, res) => {
   try {
     const { name } = req.query;
 
-    let query = 'SELECT * FROM users';
-    let queryParams = [];
+    const whereClause = name
+      ? { where: { first_name: { [Op.like]: `%${name}%` } } }
+      : {};
 
-    if (name) {
-      query = 'SELECT * FROM users WHERE first_name LIKE $1';
-      queryParams.push(`%${name}%`);
-    }
-
-    const users = await queryDB(query, queryParams);
+    const users = await Users.findAll(whereClause);
     res.json(users);
   } catch (err) {
     console.error('Error fetching users:', err);
     res.status(500).json({ error: 'Failed to fetch users' });
   }
 });
+
 // Get a single user by ID
 app.get('/api/v1/users/:id', async (req, res) => {
   const id = parseInt(req.params.id);
   try {
-    const user = await queryDB('SELECT * FROM users WHERE id = $1', [id]);
-    if (user.length > 0) {
-      console.log(user);
-      res.json(user[0]);
+    const user = await Users.findByPk(id);
+    if (user) {
+      res.json(user);
     } else {
       res.status(404).json({ error: 'User not found' });
     }
@@ -59,12 +58,8 @@ app.get('/api/v1/users/:id', async (req, res) => {
 app.post('/api/v1/users', async (req, res) => {
   const { first_name, last_name, age } = req.body;
   try {
-    const newUser = await queryDB(
-      'INSERT INTO users (first_name, last_name, age) VALUES ($1, $2, $3) RETURNING *',
-      [first_name, last_name, age]
-    );
-
-    res.status(201).json(newUser[0]);
+    const newUser = await Users.create({ first_name, last_name, age });
+    res.status(201).json(newUser);
   } catch (err) {
     console.error('Error creating user:', err);
     res.status(500).json({ error: 'Failed to create user' });
@@ -76,13 +71,10 @@ app.put('/api/v1/users/:id', async (req, res) => {
   const id = parseInt(req.params.id);
   const { first_name, last_name, age } = req.body;
   try {
-    const updatedUser = await queryDB(
-      'UPDATE users SET first_name = $1, last_name = $2, age = $3 WHERE id = $4 RETURNING *',
-      [first_name, last_name, age, id]
-    );
-
-    if (updatedUser.length > 0) {
-      res.json(updatedUser[0]);
+    const user = await Users.findByPk(id);
+    if (user) {
+      await user.update({ first_name, last_name, age });
+      res.json(user);
     } else {
       res.status(404).json({ error: 'User not found' });
     }
@@ -96,12 +88,10 @@ app.put('/api/v1/users/:id', async (req, res) => {
 app.delete('/api/v1/users/:id', async (req, res) => {
   const id = parseInt(req.params.id);
   try {
-    const deletedUser = await queryDB(
-      'DELETE FROM users WHERE id = $1 RETURNING *',
-      [id]
-    );
-    if (deletedUser.length > 0) {
-      res.json(deletedUser[0]);
+    const user = await Users.findByPk(id);
+    if (user) {
+      await user.destroy();
+      res.json({ message: 'User deleted successfully' });
     } else {
       res.status(404).json({ error: 'User not found' });
     }
@@ -116,5 +106,5 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server is running http://localhost:${PORT}`);
+  console.log(`Server is running at http://localhost:${PORT}`);
 });
