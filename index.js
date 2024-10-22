@@ -11,6 +11,10 @@ app.use(json());
 
 const PORT = process.env.PORT;
 
+app.get('/', (req, res) => {
+  res.send('Server is running!');
+});
+
 // Get all users
 app.get('/api/v1/users', async (req, res) => {
   try {
