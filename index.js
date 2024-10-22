@@ -1,5 +1,6 @@
 import express, { json } from 'express';
 import dotenv from 'dotenv';
+import cors from 'cors';
 
 import { queryDB } from './db.js';
 
@@ -7,25 +8,36 @@ dotenv.config();
 
 const app = express();
 
-app.use(json());
+app.use(json(), cors());
 
 const PORT = process.env.PORT;
 
 app.get('/', (req, res) => {
-  res.send('Server is running!');
+  res.send(`
+<h1>Server is Running!</h1>
+    `);
 });
 
-// Get all users
+// fetching with query
 app.get('/api/v1/users', async (req, res) => {
   try {
-    const users = await queryDB('SELECT * FROM users');
+    const { name } = req.query;
+
+    let query = 'SELECT * FROM users';
+    let queryParams = [];
+
+    if (name) {
+      query = 'SELECT * FROM users WHERE first_name LIKE $1';
+      queryParams.push(`%${name}%`);
+    }
+
+    const users = await queryDB(query, queryParams);
     res.json(users);
   } catch (err) {
     console.error('Error fetching users:', err);
     res.status(500).json({ error: 'Failed to fetch users' });
   }
 });
-
 // Get a single user by ID
 app.get('/api/v1/users/:id', async (req, res) => {
   const id = parseInt(req.params.id);
