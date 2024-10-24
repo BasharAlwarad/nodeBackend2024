@@ -1,40 +1,53 @@
 import express, { json } from 'express';
-import dotenv from 'dotenv';
+import { config } from 'dotenv';
 import cors from 'cors';
 import Users from './models/User.js';
-import sequelize from './db.js';
+import Orders from './models/Orders.js';
+import './db.js';
 
-dotenv.config();
+config();
 
 const app = express();
-app.use(json());
-app.use(cors());
+app.use(json(), cors());
 
 const PORT = process.env.PORT;
-
-sequelize
-  .sync({ force: false })
-  .then(() => console.log('Database synced...'))
-  .catch((err) => console.error('Error syncing database:', err));
 
 app.get('/', (req, res) => {
   res.send('<h1>Server is Running!</h1>');
 });
 
-// Fetching with query
+// Fetching All users with optional pagination (skip and limit)
 app.get('/api/v1/users', async (req, res) => {
+  const { skip = 0, limit = 10 } = req.query;
+
   try {
-    const { name } = req.query;
+    const users = await Users.findAll({
+      offset: parseInt(skip),
+      limit: parseInt(limit),
+    });
 
-    const whereClause = name
-      ? { where: { first_name: { [Op.like]: `%${name}%` } } }
-      : {};
-
-    const users = await Users.findAll(whereClause);
     res.json(users);
   } catch (err) {
     console.error('Error fetching users:', err);
     res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// Fetching all users with their orders
+app.get('/api/v1/users/orders', async (req, res) => {
+  try {
+    const usersWithOrders = await Users.findAll({
+      include: [
+        {
+          model: Orders,
+          as: 'Orders',
+        },
+      ],
+    });
+    res.json(usersWithOrders);
+  } catch (err) {
+    console.error('Error fetching users with orders:', err);
+    res.status(500).json({ error: 'Failed to fetch users with orders' });
   }
 });
 

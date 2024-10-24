@@ -19,4 +19,9 @@ sequelize
     console.error('Unable to connect to the database:', err);
   });
 
+sequelize
+  .sync({ force: false })
+  .then(() => console.log('Database synced...'))
+  .catch((err) => console.error('Error syncing database:', err));
+
 export default sequelize;
