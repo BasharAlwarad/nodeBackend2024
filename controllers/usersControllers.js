@@ -1,8 +1,7 @@
 import Users from '../models/User.js';
-import Orders from '../models/Orders.js';
 
 // Fetching All users with optional pagination (skip and limit)
-export const getUsers = async (req, res) => {
+export const getAllUsers = async (req, res) => {
   const { skip = 0, limit = 10 } = req.query;
 
   try {
@@ -20,11 +19,7 @@ export const getUsers = async (req, res) => {
 
 // Get a single user by ID
 export const getSingleUser = async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) {
-    return res.status(400).json({ error: 'Invalid user ID' });
-  }
-
+  const id = parseInt(req.params.id);
   try {
     const user = await Users.findByPk(id);
     if (user) {
@@ -51,12 +46,9 @@ export const createUser = async (req, res) => {
 };
 
 // Update an existing user
-export const updateUser = async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) {
-    return res.status(400).json({ error: 'Invalid user ID' });
-  }
 
+export const updateUser = async (req, res) => {
+  const id = parseInt(req.params.id);
   const { first_name, last_name, age } = req.body;
   try {
     const user = await Users.findByPk(id);
@@ -73,6 +65,7 @@ export const updateUser = async (req, res) => {
 };
 
 // Delete a user
+
 export const deleteUser = async (req, res) => {
   const id = parseInt(req.params.id);
   try {
