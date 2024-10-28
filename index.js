@@ -18,11 +18,16 @@ app.get('/', (req, res) => {
   res.send('<h1>Server is Running!</h1>');
 });
 
-app.use(`/api/v1/users`, usersRouter);
-app.use(`/api/v1/orders`, ordersRouter);
+app.use('/api/v1/users', usersRouter);
+app.use('/api/v1/orders', ordersRouter);
 
 app.get('*', (req, res) => {
   res.status(500).send('Server error!');
+});
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: 'Something went wrong!' });
 });
 
 app.listen(PORT, () => {
