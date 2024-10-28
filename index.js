@@ -11,11 +11,15 @@ config();
 const app = express();
 
 app.use(json(), cors());
+app.use(express.static('public'));
 
 const PORT = process.env.PORT;
 
 app.get('/', (req, res) => {
-  res.send('<h1>Server is Running!</h1>');
+  res.send(`
+    <h1>Server is Running!</h1>
+    <link rel="stylesheet" type="text/css" href="/styles.css">
+  `);
 });
 
 app.use('/api/v1/users', usersRouter);
