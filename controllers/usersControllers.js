@@ -1,5 +1,6 @@
 import Users from '../models/User.js';
 import { CustomError } from '../utils/errorHandler.js';
+import { createUserSchema } from '../schema/userSchema.js';
 
 // Fetching All users with optional pagination (skip and limit)
 export const getAllUsers = async (req, res, next) => {
@@ -39,8 +40,17 @@ export const getSingleUser = async (req, res, next) => {
 export const createUser = async (req, res, next) => {
   const { first_name, last_name, age } = req.body;
 
+  const { error, value } = createUserSchema.validate({
+    first_name,
+    last_name,
+    age,
+  });
+  if (error) {
+    return next(new CustomError(`Invalid input: ${error.message}`, 400));
+  }
+
   try {
-    const newUser = await Users.create({ first_name, last_name, age });
+    const newUser = await Users.create(value);
     res.status(201).json(newUser);
   } catch (err) {
     console.error('Error creating user:', err);
