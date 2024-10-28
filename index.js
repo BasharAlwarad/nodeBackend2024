@@ -7,13 +7,13 @@ import usersRouter from './routers/usersRouter.js';
 import ordersRouter from './routers/ordersRouter.js';
 
 config();
+const PORT = process.env.PORT;
 
 const app = express();
 
 app.use(json(), cors());
 app.use(express.static('public'));
-
-const PORT = process.env.PORT;
+app.use(express.urlencoded({ extended: true }));
 
 app.get('/', (req, res) => {
   res.send(`
@@ -24,6 +24,37 @@ app.get('/', (req, res) => {
 
 app.use('/api/v1/users', usersRouter);
 app.use('/api/v1/orders', ordersRouter);
+
+app.get('/register', (req, res) => {
+  res.send(`
+    <html>
+      <head>
+        <link rel="stylesheet" type="text/css" href="/styles.css">
+        </head>
+        <body>
+        <h1>Submit Your Data</h1>
+        <form action="/submit" method="POST">
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" required>
+        <br>
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required>
+        <br>
+        <button type="submit">Submit</button>
+        </form>
+        </body>
+        </html>
+        `);
+});
+
+app.post('/submit', (req, res) => {
+  const { name, email } = req.body;
+  res.send(
+    `<h2>Received Submission</h2><p>Name: ${name}</p><p>Email: ${email}</p>
+        <link rel="stylesheet" type="text/css" href="/styles.css">
+    `
+  );
+});
 
 app.get('*', (req, res) => {
   res.status(500).send('Server error!');
