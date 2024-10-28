@@ -1,7 +1,8 @@
 import Users from '../models/User.js';
+import { CustomError } from '../utils/errorHandler.js';
 
 // Fetching All users with optional pagination (skip and limit)
-export const getAllUsers = async (req, res) => {
+export const getAllUsers = async (req, res, next) => {
   const { skip = 0, limit = 10 } = req.query;
 
   try {
@@ -9,75 +10,79 @@ export const getAllUsers = async (req, res) => {
       offset: parseInt(skip),
       limit: parseInt(limit),
     });
-
     res.json(users);
   } catch (err) {
     console.error('Error fetching users:', err);
-    res.status(500).json({ error: 'Failed to fetch users' });
+    next(new CustomError('Failed to fetch users', 500));
   }
 };
 
 // Get a single user by ID
-export const getSingleUser = async (req, res) => {
+export const getSingleUser = async (req, res, next) => {
   const id = parseInt(req.params.id);
+
   try {
     const user = await Users.findByPk(id);
-    if (user) {
-      res.json(user);
-    } else {
-      res.status(404).json({ error: 'User not found' });
+
+    if (!user) {
+      return next(new CustomError('User not found', 404));
     }
+
+    res.json(user);
   } catch (err) {
     console.error('Error fetching user:', err);
-    res.status(500).json({ error: 'Failed to fetch user' });
+    next(new CustomError('Failed to fetch user', 500));
   }
 };
 
 // Create a new user
-export const createUser = async (req, res) => {
+export const createUser = async (req, res, next) => {
   const { first_name, last_name, age } = req.body;
+
   try {
     const newUser = await Users.create({ first_name, last_name, age });
     res.status(201).json(newUser);
   } catch (err) {
     console.error('Error creating user:', err);
-    res.status(500).json({ error: 'Failed to create user' });
+    next(new CustomError('Failed to create user', 500));
   }
 };
 
 // Update an existing user
-
-export const updateUser = async (req, res) => {
+export const updateUser = async (req, res, next) => {
   const id = parseInt(req.params.id);
   const { first_name, last_name, age } = req.body;
+
   try {
     const user = await Users.findByPk(id);
-    if (user) {
-      await user.update({ first_name, last_name, age });
-      res.json(user);
-    } else {
-      res.status(404).json({ error: 'User not found' });
+
+    if (!user) {
+      return next(new CustomError('User not found', 404));
     }
+
+    await user.update({ first_name, last_name, age });
+    res.json(user);
   } catch (err) {
     console.error('Error updating user:', err);
-    res.status(500).json({ error: 'Failed to update user' });
+    next(new CustomError('Failed to update user', 500));
   }
 };
 
 // Delete a user
-
-export const deleteUser = async (req, res) => {
+export const deleteUser = async (req, res, next) => {
   const id = parseInt(req.params.id);
+
   try {
     const user = await Users.findByPk(id);
-    if (user) {
-      await user.destroy();
-      res.json({ message: 'User deleted successfully' });
-    } else {
-      res.status(404).json({ error: 'User not found' });
+
+    if (!user) {
+      return next(new CustomError('User not found', 404));
     }
+
+    await user.destroy();
+    res.json({ message: 'User deleted successfully' });
   } catch (err) {
     console.error('Error deleting user:', err);
-    res.status(500).json({ error: 'Failed to delete user' });
+    next(new CustomError('Failed to delete user', 500));
   }
 };
