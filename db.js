@@ -1,27 +1,23 @@
-import { Sequelize } from 'sequelize';
+import { MongoClient } from 'mongodb';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const NEON = process.env.NEON;
+const MONGODB_URI = process.env.MONGODB_URI;
+const MONGODB_NAME = process.env.MONGODB_NAME;
+const client = new MongoClient(MONGODB_URI);
 
-const sequelize = new Sequelize(NEON, {
-  dialect: 'postgres',
-  logging: false,
-});
-
-sequelize
-  .authenticate()
-  .then(() => {
-    console.log('Database connected...');
-  })
-  .catch((err) => {
+async function connectToDatabase() {
+  try {
+    await client.connect();
+    console.log('MongoDB is connected...');
+  } catch (err) {
     console.error('Unable to connect to the database:', err);
-  });
+    process.exit(1);
+  }
+}
 
-sequelize
-  .sync({ force: false })
-  .then(() => console.log('Database synced...'))
-  .catch((err) => console.error('Error syncing database:', err));
+connectToDatabase();
 
-export default sequelize;
+const db = client.db(MONGODB_NAME);
+export { db, client };

@@ -1,83 +1,115 @@
-import Users from '../models/User.js';
+import { db } from '../db.js';
+import { ObjectId } from 'mongodb';
 
-// Fetching All users with optional pagination (skip and limit)
+// Fetching All Users with Optional Pagination (skip and limit)
 export const getAllUsers = async (req, res) => {
-  const { skip = 0, limit = 10 } = req.query;
-
   try {
-    const users = await Users.findAll({
-      offset: parseInt(skip),
-      limit: parseInt(limit),
-    });
+    const userCollection = db.collection('users');
+    const { skip = 0, limit = 10 } = req.query;
+    const users = await userCollection
+      .find()
+      .skip(parseInt(skip))
+      .limit(parseInt(limit))
+      .toArray();
 
-    res.json(users);
+    res.status(200).json({ success: true, data: users });
   } catch (err) {
     console.error('Error fetching users:', err);
-    res.status(500).json({ error: 'Failed to fetch users' });
+    res.status(500).json({ success: false, error: 'Failed to fetch users' });
   }
 };
 
-// Get a single user by ID
+// Get a Single User by ID
 export const getSingleUser = async (req, res) => {
-  const id = parseInt(req.params.id);
   try {
-    const user = await Users.findByPk(id);
+    const userCollection = db.collection('users');
+    const user = await userCollection.findOne({
+      _id: new ObjectId(req.params.id),
+    });
     if (user) {
-      res.json(user);
+      res.status(200).json({ success: true, data: user });
     } else {
-      res.status(404).json({ error: 'User not found' });
+      res.status(404).json({ success: false, error: 'User not found' });
     }
   } catch (err) {
     console.error('Error fetching user:', err);
-    res.status(500).json({ error: 'Failed to fetch user' });
+    res.status(500).json({ success: false, error: 'Failed to fetch user' });
   }
 };
 
-// Create a new user
+// Create a New User
 export const createUser = async (req, res) => {
   const { first_name, last_name, age } = req.body;
   try {
-    const newUser = await Users.create({ first_name, last_name, age });
-    res.status(201).json(newUser);
+    const userCollection = db.collection('users');
+    const result = await userCollection.insertOne({
+      first_name,
+      last_name,
+      age,
+    });
+    res.status(201).json({
+      success: true,
+      data: { id: result.insertedId, first_name, last_name, age },
+    });
   } catch (err) {
     console.error('Error creating user:', err);
-    res.status(500).json({ error: 'Failed to create user' });
+    res.status(500).json({ success: false, error: 'Failed to create user' });
   }
 };
 
-// Update an existing user
-
+// Update an Existing User
 export const updateUser = async (req, res) => {
-  const id = parseInt(req.params.id);
   const { first_name, last_name, age } = req.body;
+  const userId = req.params.id;
+
+  if (!ObjectId.isValid(userId)) {
+    return res
+      .status(400)
+      .json({ success: false, error: 'Invalid user ID format' });
+  }
+
   try {
-    const user = await Users.findByPk(id);
-    if (user) {
-      await user.update({ first_name, last_name, age });
-      res.json(user);
+    const userCollection = db.collection('users');
+
+    const user = await userCollection.findOne({ _id: new ObjectId(userId) });
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    const result = await userCollection.findOneAndUpdate(
+      { _id: new ObjectId(userId) },
+      { $set: { first_name, last_name, age } },
+      { returnDocument: 'after' }
+    );
+
+    if (result.value) {
+      res.status(200).json({ success: true, data: result.value });
     } else {
-      res.status(404).json({ error: 'User not found' });
+      res.status(404).json({ success: false, error: 'User not found' });
     }
   } catch (err) {
     console.error('Error updating user:', err);
-    res.status(500).json({ error: 'Failed to update user' });
+    res.status(500).json({ success: false, error: 'Failed to update user' });
   }
 };
 
-// Delete a user
-
+// Delete a User
 export const deleteUser = async (req, res) => {
-  const id = parseInt(req.params.id);
   try {
-    const user = await Users.findByPk(id);
-    if (user) {
-      await user.destroy();
-      res.json({ message: 'User deleted successfully' });
+    const userCollection = db.collection('users');
+    const result = await userCollection.deleteOne({
+      _id: new ObjectId(req.params.id),
+    });
+    if (result.deletedCount === 1) {
+      res
+        .status(200)
+        .json({ success: true, message: 'User deleted successfully' });
     } else {
-      res.status(404).json({ error: 'User not found' });
+      res.status(404).json({ success: false, error: 'User not found' });
     }
   } catch (err) {
     console.error('Error deleting user:', err);
-    res.status(500).json({ error: 'Failed to delete user' });
+    res.status(500).json({ success: false, error: 'Failed to delete user' });
   }
 };
