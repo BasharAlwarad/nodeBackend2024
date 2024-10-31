@@ -1,7 +1,7 @@
 import express, { json } from 'express';
 import { config } from 'dotenv';
 import cors from 'cors';
-import { client } from './db.js';
+import './db.js';
 
 import userRouter from './routers/usersRouter.js';
 import ordersRouter from './routers/ordersRouter.js';
@@ -11,7 +11,7 @@ config();
 const app = express();
 app.use(json(), cors());
 
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 5000;
 
 app.get('/', (req, res) => {
   res.send('<h1>Server is Running!</h1>');
@@ -24,13 +24,6 @@ app.get('*', (req, res) => {
   res.status(500).send('Server error!');
 });
 
-client
-  .connect()
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`Server is running at http://localhost:${PORT}`);
-    });
-  })
-  .catch((err) => {
-    console.error('Failed to connect to MongoDB:', err);
-  });
+app.listen(PORT, () => {
+  console.log(`Server is running at http://localhost:${PORT}`);
+});

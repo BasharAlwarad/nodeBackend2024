@@ -1,34 +1,18 @@
-import { DataTypes } from 'sequelize';
-import sequelize from '../db.js';
-import User from './User.js';
+import mongoose from 'mongoose';
 
-const Order = sequelize.define(
-  'Order',
+const orderSchema = new mongoose.Schema(
   {
-    price: {
-      type: DataTypes.FLOAT,
-      allowNull: false,
-    },
-    date: {
-      type: DataTypes.DATE,
-      allowNull: false,
-    },
+    price: { type: Number, required: true },
     user_id: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'users',
-        key: 'id',
-      },
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
     },
   },
   {
-    tableName: 'orders',
-    timestamps: false,
+    timestamps: true,
   }
 );
 
-User.hasMany(Order, { foreignKey: 'user_id' });
-Order.belongsTo(User, { foreignKey: 'user_id' });
-
+const Order = mongoose.model('Order', orderSchema);
 export default Order;

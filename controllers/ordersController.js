@@ -1,11 +1,10 @@
-import { db } from '../db.js';
-import { ObjectId } from 'mongodb';
+import Order from '../models/Orders.js';
+import User from '../models/User.js';
 
 // Fetching All Orders with Success Status
 export const getAllOrders = async (req, res) => {
   try {
-    const orderCollection = db.collection('orders');
-    const orders = await orderCollection.find().toArray();
+    const orders = await Order.find().populate('user_id');
     res.status(200).json({ success: true, data: orders });
   } catch (err) {
     console.error('Error fetching orders:', err);
@@ -15,10 +14,8 @@ export const getAllOrders = async (req, res) => {
 
 // Get a Single Order by ID with Success Status
 export const getSingleOrder = async (req, res) => {
-  const id = req.params.id;
   try {
-    const orderCollection = db.collection('orders');
-    const order = await orderCollection.findOne({ _id: new ObjectId(id) });
+    const order = await Order.findById(req.params.id).populate('user_id');
     if (order) {
       res.status(200).json({ success: true, data: order });
     } else {
@@ -34,24 +31,17 @@ export const getSingleOrder = async (req, res) => {
 export const createOrder = async (req, res) => {
   const { price, user_id } = req.body;
   try {
-    const orderCollection = db.collection('orders');
-
-    const userExists = await db
-      .collection('users')
-      .findOne({ _id: new ObjectId(user_id) });
+    const userExists = await User.findById(user_id);
     if (!userExists) {
       return res.status(400).json({ success: false, error: 'User not found' });
     }
 
-    const newOrder = {
+    const newOrder = new Order({
       price,
-      date: new Date(),
-      user_id: new ObjectId(user_id),
-    };
-    const result = await orderCollection.insertOne(newOrder);
-    res
-      .status(201)
-      .json({ success: true, data: { id: result.insertedId, ...newOrder } });
+      user_id,
+    });
+    const savedOrder = await newOrder.save();
+    res.status(201).json({ success: true, data: savedOrder });
   } catch (err) {
     console.error('Error creating order:', err);
     res.status(500).json({ success: false, error: 'Failed to create order' });
@@ -60,18 +50,15 @@ export const createOrder = async (req, res) => {
 
 // Update an Existing Order with Success Status
 export const updateOrder = async (req, res) => {
-  const id = req.params.id;
-  const { price, date, user_id } = req.body;
+  const { price, user_id } = req.body;
   try {
-    const orderCollection = db.collection('orders');
-    const order = await orderCollection.findOne({ _id: new ObjectId(id) });
-    if (order) {
-      const updatedOrder = await orderCollection.findOneAndUpdate(
-        { _id: new ObjectId(id) },
-        { $set: { price, date, user_id: new ObjectId(user_id) } },
-        { returnDocument: 'after' }
-      );
-      res.status(200).json({ success: true, data: updatedOrder.value });
+    const updatedOrder = await Order.findByIdAndUpdate(
+      req.params.id,
+      { price, user_id },
+      { new: true }
+    ).populate('user_id');
+    if (updatedOrder) {
+      res.status(200).json({ success: true, data: updatedOrder });
     } else {
       res.status(404).json({ success: false, error: 'Order not found' });
     }
@@ -83,11 +70,9 @@ export const updateOrder = async (req, res) => {
 
 // Delete an Order with Success Status
 export const deleteOrder = async (req, res) => {
-  const id = req.params.id;
   try {
-    const orderCollection = db.collection('orders');
-    const result = await orderCollection.deleteOne({ _id: new ObjectId(id) });
-    if (result.deletedCount === 1) {
+    const deletedOrder = await Order.findByIdAndDelete(req.params.id);
+    if (deletedOrder) {
       res
         .status(200)
         .json({ success: true, message: 'Order deleted successfully' });
