@@ -1,3 +1,5 @@
+import mongoose from 'mongoose'; // Add this line
+
 import Order from '../models/Orders.js';
 import User from '../models/User.js';
 
@@ -82,5 +84,35 @@ export const deleteOrder = async (req, res) => {
   } catch (err) {
     console.error('Error deleting order:', err);
     res.status(500).json({ success: false, error: 'Failed to delete order' });
+  }
+};
+
+// Aggregate Orders for a Specific User
+export const getUserOrders = async (req, res) => {
+  const { user_id } = req.params;
+  try {
+    const orders = await Order.aggregate([
+      { $match: { user_id: new mongoose.Types.ObjectId(user_id) } },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'user_id',
+          foreignField: '_id',
+          as: 'user',
+        },
+      },
+      { $unwind: '$user' },
+    ]);
+
+    if (orders.length > 0) {
+      res.status(200).json({ success: true, data: orders });
+    } else {
+      res
+        .status(404)
+        .json({ success: false, error: 'No orders found for this user' });
+    }
+  } catch (err) {
+    console.error('Error aggregating orders for user:', err);
+    res.status(500).json({ success: false, error: 'Failed to fetch orders' });
   }
 };
